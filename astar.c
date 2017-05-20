@@ -14,6 +14,7 @@ typedef struct cell {
     int left;
     int right;
     int type;
+    int visited;
 } cell;
 
 typedef struct stack {
@@ -22,22 +23,184 @@ typedef struct stack {
     int top;
 } stack;
 
-void move(int x1, int y1, int x2, int y2, stack *s, cell **maze){
-    printf("Sx: %d, Sy: %d\n", s->mat[s->top]->x, s->mat[s->top]->y);
-    s->mat[s->top]->type = 8;
-}
-
 float weighted_manhattan(int x1, int y1, int x2, int y2){
     float d;
     d = abs(x1 - x2) + 0.5 * abs(y1 - y2);
     return d;
 }
 
+int calculate_direction_based_on_en(int target_x, int target_y, stack *s, cell **maze, float *gn, int selector){
+    float en_left = 5555.0, en_right = 5555.0, en_up = 5555.0, en_down = 5555.0;
+    float values[4];
+    int keys[4];
+
+    if (maze[s->mat[s->top]->x][((s->mat[s->top]->y) - 1)]->type != 1 && s->mat[s->top]->y - 1 > 0){
+        en_left = gn + weighted_manhattan(s->mat[s->top]->x, ((s->mat[s->top]->y) - 1), target_x, target_y);
+    }
+
+    if (maze[s->mat[s->top]->x][((s->mat[s->top]->y) + 1)]->type != 1 && s->mat[s->top]->y + 1 <= N){
+        en_right = gn + weighted_manhattan(s->mat[s->top]->x, ((s->mat[s->top]->y) + 1), target_x, target_y);
+    }
+
+    if (maze[((s->mat[s->top]->x) - 1)][s->mat[s->top]->y]->type != 1 && s->mat[s->top]->x - 1 > 0){
+        en_up = gn + weighted_manhattan(((s->mat[s->top]->x) - 1), s->mat[s->top]->y, target_x, target_y);
+    }
+
+    if (maze[((s->mat[s->top]->x) + 1)][s->mat[s->top]->y]->type != 1 && s->mat[s->top]->x + 1 <= N){
+        en_down = gn + weighted_manhattan(((s->mat[s->top]->x) + 1), s->mat[s->top]->y, target_x, target_y);
+    }
+
+    float min = 100000.0;
+    int direction = 0;
+    int temp_int;
+    float temp_float;
+
+    values[0] = en_up;
+    values[1] = en_right;
+    values[2] = en_down;
+    values[3] = en_left;
+
+    keys[0] = 1;
+    keys[1] = 2;
+    keys[2] = 3;
+    keys[3] = 4;
+    int i, j;
+
+    for (int i = 0; i < 3; i++){
+        for (int j = 0; j < 3 - j; j++){
+            if (values[j] > values[j + 1]){
+                temp_float = values[j];
+                temp_int = keys[j];
+                values[j] = values[j + 1];
+                keys[j] = keys[j + 1];
+                values[j + 1] = temp_float;
+                keys[j + 1] = temp_int;
+            }
+        }
+    }
+
+    if (selector == 0){
+        if (values[selector] != 5555.0){
+            direction = keys[selector];
+        } else {
+            calculate_direction_based_on_en(target_x, target_y, &s, maze, &gn, 1);
+        }
+    }
+    if (selector == 1){
+        if (values[selector] != 5555.0){
+            direction = keys[selector];
+        } else {
+            calculate_direction_based_on_en(target_x, target_y, &s, maze, &gn, 2);
+        }
+    }
+    if (selector == 2){
+        if (values[selector] != 5555.0){
+            direction = keys[selector];
+        } else {
+            calculate_direction_based_on_en(target_x, target_y, &s, maze, &gn, 3);
+        }
+    }
+    if (selector == 3){
+        if (values[selector] != 5555.0){
+            direction = keys[selector];
+        } else {
+            calculate_direction_based_on_en(target_x, target_y, &s, maze, &gn, 4);
+        }
+    }
+    if (selector == 4){
+        direction = 0;
+    }
+
+    return direction;
+}
+
+void move(int target_x, int target_y, stack *s, cell **maze, float *gn, int selector, int *extensions){
+    int direction;
+
+    direction = calculate_direction_based_on_en(target_x, target_y, &s, maze, &gn, selector);
+
+    if (direction == 0){
+        if (s->top == 0){
+            printf("No solution found!\n");
+            exit(0);
+        }
+        if (s->mat[(s->top - 1)]->x == s->mat[s->top]->x){
+            gn -= 0.5;
+        } else {
+            gn -= 1.0;
+        }
+
+        if ((s->mat[(s->top - 1)]->x - s->mat[s->(top)]->x) == 1 && s->mat[s->(top - 1)]->y == s->mat[s->top]->y) {
+            s->mat[(s->top - 1)]->up = 1;
+        }
+        if ((s->mat[s->(top - 1)]->x - s->mat[s->(top)]->x) == -1 && s->mat[s->(top - 1)]->y == s->mat[s->top]->y) {
+            s->mat[s->(top - 1)]->down = 1;
+        }
+
+        if ((s->mat[s->(top - 1)]->y - s->mat[s->(top)]->y) == -1 && s->mat[s->(top - 1)]->x == s->mat[s->top]->x) {
+            s->mat[s->(top - 1)]->right = 1;
+        }
+        if ((s->mat[s->(top - 1)]->y - s->mat[s->(top)]->y) == 1 && s->mat[s->(top - 1)]->x == s->mat[s->top]->x) {
+            s->mat[s->(top - 1)]->left = 1;
+        }
+
+        s->mat[s->top]->visited = 1;
+        s->top -= 1;
+
+        move(target_x, target_y, &s, maze, &gn, 0, &extensions);
+    }
+
+    if (direction == 1){
+        s->mat[s->top + 1] = &maze[s->mat[s->top]->x - 1][s->mat[s->top]->y];
+        s->top += 1;
+        gn += 1.0;
+        extensions += 1;
+        if (maze[s->mat[s->top]->x] == target_x && maze[s->mat[s->top]->y] == target_y){
+            return;
+        }
+        move(target_x, target_y, &s, maze, &gn, 0, &extensions);
+    }
+    if (direction == 2){
+        s->mat[s->top + 1] = &maze[s->mat[s->top]->x][s->mat[s->top]->y + 1];
+        s->top += 1;
+        gn += 0.5;
+        extensions += 1;
+        if (maze[s->mat[s->top]->x] == target_x && maze[s->mat[s->top]->y] == target_y){
+            return;
+        }
+        move(target_x, target_y, &s, maze, &gn, 0, &extensions);
+    }
+    if (direction == 3){
+        s->mat[s->top + 1] = &maze[s->mat[s->top]->x + 1][s->mat[s->top]->y];
+        s->top += 1;
+        gn += 1.0;
+        extensions += 1;
+        if (maze[s->mat[s->top]->x] == target_x && maze[s->mat[s->top]->y] == target_y){
+            return;
+        }
+        move(target_x, target_y, &s, maze, &gn, 0, &extensions);
+    }
+    if (direction == 4){
+        s->mat[s->top + 1] = &maze[s->mat[s->top]->x][s->mat[s->top]->y - 1];
+        s->top += 1;
+        gn += 0.5;
+        extensions += 1;
+        if (maze[s->mat[s->top]->x] == target_x && maze[s->mat[s->top]->y] == target_y){
+            return;
+        }
+        move(target_x, target_y, &s, maze, &gn, 0, &extensions);
+    }
+}
+
 void print_maze(cell **maze){
     int i,j;
     for (i = 0; i < N; i++){
         for (j = 0; j < N; j++){
-            printf("%d ", maze[i][j].type);
+            if (maze[i][j].visited == 1){
+                printf("%d ", maze[i][j].type);
+            } else {
+                printf("%d ", 5); //printing the wrong path
+            }
         }
         printf("\n");
     }
@@ -62,6 +225,7 @@ int main(){
                 maze[i][j].down = 0;
                 maze[i][j].right = 0;
                 maze[i][j].left = 0;
+                maze[i][j].visited = 0;
                 if (i == 0){            //set the walls of the maze
                     maze[i][j].up = 1;
                 }
@@ -80,6 +244,7 @@ int main(){
                 maze[i][j].down = 0;
                 maze[i][j].right = 0;
                 maze[i][j].left = 0;
+                maze[i][j].visited = 0;
                 if (i == 0){            //set the walls of the maze
                     maze[i][j].up = 1;
                 }
@@ -166,12 +331,21 @@ int main(){
 
 
 //    printf("\n%f\n", weighted_manhattan(Sx, Sy, G1x, G1y));
+    float gn = 0;
+    float sum_gn = 0;
+    int extensions = 0;
     if (weighted_manhattan(Sx, Sy, G1x, G1y) <= weighted_manhattan(Sx, Sy, G2x, G2y)){
         //select G1, it is closer to S
-        move(Sx, Sy, G1x, G1y, &st, maze);
+        move(G1x, G1y, &st, maze, &gn, 0, &extensions);
+        sum_gn += gn;
+        gn = 0;
+        move(G2x, G2y, &st, maze, &gn, 0, &extensions);
     } else {
         //select G2, it is closer to S
-        move(Sx, Sy, G2x, G2y, &st, maze);
+        move(G2x, G2y, &st, maze, &gn, 0, &extensions);
+        sum_gn += gn;
+        gn = 0;
+        move(G1x, G1y, &st, maze, &gn, 0, &extensions);
     }
 
     print_maze(maze);

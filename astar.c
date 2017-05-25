@@ -420,6 +420,9 @@ int main(){
     printf("Total extensions made: %d\n", extensions);
     print_stack(&st);
     print_maze(maze);
+    for(i = 0; i<N;i++)
+        free(maze[i]);
+    free(maze);
 
     return 0;
 }

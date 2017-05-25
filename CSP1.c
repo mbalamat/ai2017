@@ -1,140 +1,235 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #define N 5
 
-int check_neighbors(int **grid, int i, int j){
-    if (i == 0){
-        if (j == 0){
-            if (grid[i][j + 1] == 0){
-                return 0;
-            }
-            if (grid[i + 1][j] == 0){
-                return 0;
-            }
-        } else if (j == (N - 1)){
-           if (grid[i][j - 1] == 0){
-                return 0;
-           }
-           if (grid[i + 1][j] == 0){
-                return 0;
-           }
-        } else {
-            if (grid[i][j + 1] == 0 || grid[i][j - 1] == 0 || grid[i + 1][j] == 0){
-                return 0;
-            }
-        }
-    } else if (i == (N - 1)){
-        if (j == 0){
-            if (grid[i][j + 1] == 0){
-                return 0;
-            }
-            if (grid[i - 1][j] == 0){
-                return 0;
-            }
-        } else if (j == (N - 1)){
-           if (grid[i][j - 1] == 0){
-                return 0;
-           }
-           if (grid[i - 1][j] == 0){
-                return 0;
-           }
-        } else {
-            if (grid[i][j + 1] == 0 || grid[i][j - 1] == 0 || grid[i - 1][j] == 0){
-                return 0;
-            }
-        }
-    } else if (j == 0) {
-        if (i != 0 && i != (N - 1)){
-            if (grid[i - 1][j] == 0 || grid[i + 1][j] == 0 || grid[i][j + 1] == 0){
-                return 0;
-            }
-        }
-    } else if (j == (N - 1)){
-        if (i != 0 && i != (N - 1)){
-            if (grid[i - 1][j] == 0 || grid[i + 1][j] == 0 || grid[i][j - 1] == 0){
-                return 0;
-            }
-        }
-    } else if (i != 0 && i != (N - 1) && j != 0 && j != (N - 1)) {
-        if (grid[i][j - 1] == 0 || grid[i][j + 1] == 0 || grid[i - 1][j] == 0 || grid[i + 1][j] == 0){
-            return 0;
-        }
+typedef struct cell{
+    int value;
+    int color; // 0 black, 2 white
+} cell;
 
-    } else {
-        return 1;
-    }
-    return 1;
-}
-
-void hitori(int **grid, int w, int z){
-    int cx = 0, cy = 0, i, counter = 0;
-    for (i = 0; i < N; i++){
-        if (grid[w][i] == grid[w][z]){
-            cy++;
-        }
-    }
-    for (i = 0; i < N; i++){
-        if (grid[i][z] == grid[w][z]){
-            cx++;
-        }
-    }
-    //cx = cx - 1;
-    //cy = cy - 1;
-    counter = cx + cy - 2;
-    /*
-    if (cx != 0){
-        if (check_neighbors(grid, w, z)){
-            grid[w][z] = 0;
-        }
-    }
-    if (cy != 0){
-        if (check_neighbors(grid, w, z)){
-            grid[w][z] = 0;
-        }
-    }
-    */
-    if (counter != 0 && check_neighbors(grid, w, z) == 1){
-        grid[w][z] = 0;
-    }
-}
-
-int play(int **grid){
+void print_grid(cell **grid){
     int i, j;
-    for (j = 0; j < N; j++){
-        for (i = 0; i < N; i++){
-            hitori(grid, i, j);
-            //print_grid(grid);
-        }
-    }
-    return 1;
-}
-
-void print_grid(int **grid){
-    int i,j;
     for (i = 0; i < N; i++){
         for (j = 0; j < N; j++){
-            printf("%d  ", grid[i][j]);
+            if (grid[i][j].color != 0){
+                printf(" %d ", grid[i][j].value);
+            } else{
+                printf(" %d ", 0);
+            }
         }
         printf("\n");
     }
 }
 
-int main(){
-    int **grid;
-    grid = (int **) malloc(N * sizeof(int *));
-    int i, j;
+int score_grid(cell **grid){
+    int i, j, k, score = 0;
     for (i = 0; i < N; i++){
-        grid[i] = (int *) malloc(N * sizeof(int));
+        for (j = 0; j < N; j++){
+            if (grid[i][j].color != 0){
+                for (k = 0; k < N; k++){
+                    if (grid[i][k].value == grid[i][j].value && k != j && grid[i][k].value != 0){
+                        score += 10;
+                    }
+                }
+                for (k = 0; k < N; k++){
+                    if (grid[k][j].value == grid[i][j].value && k != i && grid[k][j].value != 0){
+                        score += 10;
+                    }
+                }
+            }
+        }
+    }
+    return score;
+}
+
+void check_cell(cell **grid, int i, int j, int *score){
+    int tmp_score, k;
+    if (grid[i][j].color == 1 && grid[i][j].value != 0){
+        grid[i][j].color = 0;
+        tmp_score = score_grid(grid);
+        if (!(tmp_score < *score)){
+            grid[i][j].color = 1;
+            return;
+        }
+        if (i == 0){
+            if (j == 0){
+                grid[0][1].color = 2;
+                grid[1][0].color = 2;
+            } else if (j == N - 1){
+                grid[0][N - 2].color = 2;
+                grid[1][N - 1].color = 2;
+            } else {
+                grid[0][j - 1].color = 2;
+                grid[0][j + 1].color = 2;
+                grid[1][j].color = 2;
+            }
+            *score = tmp_score;
+            return;
+        }
+        if (i == N - 1){
+            if (j == 0){
+                grid[N - 1][1].color = 2;
+                grid[N - 2][0].color = 2;
+            } else if (j == N - 1){
+                grid[N - 1][N - 2].color = 2;
+                grid[N - 2][N - 1].color = 2;
+            } else {
+                grid[N - 1][j - 1].color = 2;
+                grid[N - 1][j + 1].color = 2;
+                grid[N - 2][j].color = 2;
+            }
+            *score = tmp_score;
+            return;
+        }
+        if (j == 0){
+            if (i == 0){
+                grid[0][1].color = 2;
+                grid[1][0].color = 2;
+            } else if (i == N - 1){
+                grid[N - 2][0].color = 2;
+                grid[N - 1][1].color = 2;
+            } else {
+                grid[i - 1][0].color = 2;
+                grid[i + 1][0].color = 2;
+                grid[i][1].color = 2;
+            }
+            *score = tmp_score;
+            return;
+        }
+        if (j == N - 1){
+            if (i == 0){
+                grid[0][N - 2].color = 2;
+                grid[1][N - 1].color = 2;
+            } else if (i == N - 1){
+                grid[N - 1][N - 2].color = 2;
+                grid[N - 2][N - 1].color = 2;
+            } else {
+                grid[i - 1][N - 1].color = 2;
+                grid[i + 1][N - 1].color = 2;
+                grid[i][N - 2].color = 2;
+            }
+            *score = tmp_score;
+            return;
+        }
+        grid[i - 1][j].color = 2;
+        grid[i + 1][j].color = 2;
+        grid[i][j - 1].color = 2;
+        grid[i][j + 1].color = 2;
+        *score = tmp_score;
+        return;
+    }
+}
+
+int main(){
+    time_t t;
+    cell **grid;
+    grid = (cell **) malloc(N * sizeof(cell *));
+    int i, j;
+
+    for (i = 0; i < N; i++){
+        grid[i] = (cell *) malloc(N * sizeof(cell));
     }
 
+    srand((unsigned) time(&t));
+    double r;
+
+    for (i = 0; i < N; i++){
+        for (j = 0; j < N; j++){
+            grid[i][j].value = (rand() % (N)) + 1;
+            grid[i][j].color = 2;
+        }
+    }
+
+    print_grid(grid);
+    printf("\n");
+
+    for (i = 0; i < N; i++){
+        for (j = 0; j < N; j++){
+            r = (rand() % 100) / 100.0;
+            if (r < 0.4){
+                if (i == 0){
+                    if (j == 0){
+                        if (grid[0][1].color != 0 && grid[1][0].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    } else if (j == N - 1){
+                        if (grid[0][N - 2].color != 0 && grid[1][N - 1].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    } else {
+                        if (grid[0][j - 1].color != 0 && grid[0][j - 1].color != 0 && grid[1][j].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    }
+                }
+                if (i == N - 1){
+                    if (j == 0){
+                        if (grid[N - 1][1].color != 0 && grid[N - 2][0].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    } else if (j == N - 1){
+                        if (grid[N - 1][N - 2].color != 0 && grid[N - 2][N - 1].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    } else {
+                        if (grid[N - 1][j - 1].color != 0 && grid[N - 1][j + 1].color != 0 && grid[N - 2][j].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    }
+                }
+                if (j == 0){
+                    if (i == 0){
+                        if (grid[0][1].color != 0 && grid[1][0].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    } else if (i == N - 1){
+                        if (grid[N - 2][0].color != 0 && grid[N - 1][1].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    } else {
+                        if (grid[i - 1][0].color != 0 && grid[i + 1][0].color != 0 && grid[i][1].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    }
+                }
+                if (j == N - 1){
+                    if (i == 0){
+                        if (grid[0][N - 2].color != 0 && grid[1][N - 1].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    } else if (i == N - 1){
+                        if (grid[N - 1][N - 2].color != 0 && grid[N - 2][N - 1].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    } else {
+                        if (grid[i - 1][N - 1].color != 0 && grid[i + 1][N - 1].color != 0 && grid[i][N - 2].color != 0){
+                            grid[i][j].color = 0;
+                        }
+                    }
+                }
+                if (grid[i - 1][j].color != 0 && grid[i + 1][j].color != 0 && grid[i][j - 1].color != 0 && grid[i][j + 1].color != 0){
+                            grid[i][j].color = 0;
+                }
+            }
+        }
+    }
+
+    print_grid(grid);
+    int g;
+    g = score_grid(grid);
+    printf("grid's grade = %d\n", g);
     /*
     for (i = 0; i < N; i++){
         for (j = 0; j < N; j++){
-            grid[i][j] = (rand() % (N - 2)) + 1;
+            check_cell(grid, i, j, &g);
         }
     }
     */
-
+    print_grid(grid);
+    g = score_grid(grid);
+    printf("grid's grade = %d\n", g);
+    /*  SOLVABLE GRID
     grid[0][0] = 1;
     grid[0][1] = 5;
     grid[0][2] = 3;
@@ -164,10 +259,6 @@ int main(){
     grid[4][2] = 5;
     grid[4][3] = 4;
     grid[4][4] = 4;
-
-    print_grid(grid);
-    play(grid);
-    printf("\n\n");
-    print_grid(grid);
+    */
     return 0;
 }

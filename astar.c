@@ -6,6 +6,12 @@
 #define M 100
 #define p 0.3
 
+int gG1x;
+int gG1y;
+int gG2x;
+int gG2y;
+
+
 typedef struct cell {
     int x;
     int y;
@@ -18,7 +24,6 @@ typedef struct cell {
 } cell;
 
 typedef struct stack {
-  //  struct cell;
     cell *mat[M];
     int top;
 } stack;
@@ -235,7 +240,12 @@ void move(int target_x, int target_y, stack *s, cell **maze, float *gn, int sele
         if (s->mat[s->top]->x == target_x && s->mat[s->top]->y == target_y){
             return;
         }
-        move(target_x, target_y, &(*s), maze, &(*gn), 0, &(*extensions));
+        if (weighted_manhattan(s->mat[s->top]->x, s->mat[s->top]->y, gG1x, gG1y) <= weighted_manhattan(s->mat[s->top]->x, s->mat[s->top]->y, gG2x, gG2y)){
+            move(gG1x, gG1y, &(*s), maze, &(*gn), 0, &(*extensions));
+        }else{
+            move(gG2x, gG2y, &(*s), maze, &(*gn), 0, &(*extensions));
+        }
+
     }
 }
 
@@ -392,6 +402,10 @@ int main(){
     printf("G2: [%d,%d]\n", G2x, G2y);
     if (weighted_manhattan(Sx, Sy, G1x, G1y) <= weighted_manhattan(Sx, Sy, G2x, G2y)){
         //select G1, it is closer to S
+        gG1x = G1x;
+        gG1y = G1y;
+        gG2x = G2x;
+        gG2y = G2y;
         move(G1x, G1y, &st, maze, &gn, 0, &extensions);
         print_stack(&st);
         st.top = 0;
@@ -405,6 +419,10 @@ int main(){
         printf("Total Gn cost is: %f\n", sum_gn);
     } else {
         //select G2, it is closer to S
+        gG1x = G1x;
+        gG1y = G1y;
+        gG2x = G2x;
+        gG2y = G2y;
         move(G2x, G2y, &st, maze, &gn, 0, &extensions);
         print_stack(&st);
         st.top = 0;
